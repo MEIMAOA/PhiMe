@@ -1,13 +1,13 @@
-PhiMe · Phigros 自动打歌 Mod
+PhiMe · Phigros 自动打歌 Mod（重建版）
 Copyright (C) 2026 MEIMAOA
 
 本项目基于 / 引用了开源仓库 https://github.com/melodycheese/PhiMe
 （原仓库现已无法访问，见 README 说明）。
 
-本仓库仅包含 Mod 自身的二进制与文档，不包含《Phigros》的任何游戏资源。
+本仓库仅包含 Mod 自身的源码与文档，不包含《Phigros》的任何游戏资源。
 
 本作品按“原样”提供，不附带任何明示或默示的保证，仅供学习与交流使用，
 与《Phigros》开发商 Pigeon Games 无关，也未经其授权或认可。
 
-允许在保留本声明与上述引用的情况下转载 Mod 自身的二进制；《Phigros》
-游戏资源不得随本仓库分发。
+允许在保留本声明与上述引用的情况下使用、转载本源码；《Phigros》游戏资源
+不得随本仓库分发。

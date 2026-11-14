@@ -1,57 +1,60 @@
-# PhiMe · Phigros 自动打歌 Mod
+# PhiMe · Phigros 自动打歌 Mod（源码）
 
-PhiMe 是一个注入到《Phigros》安卓版（Unity + IL2CPP）里的原生 Mod（C++17 freestanding，无 STL）。它在你自己的存档上工作：自动打歌、按评级自动收分、一键解锁隐藏曲/头像，并把成绩上传到本地与云端。
+《Phigros》安卓版（Unity + IL2CPP）注入式原生 Mod，C++17 freestanding（无 STL、无异常/RTTI）。
 
 > 本项目基于 / 引用了开源仓库 [melodycheese/PhiMe](https://github.com/melodycheese/PhiMe)。
 
----
+这是**从零重建的源码**：原工程文件曾丢失，这里按反汇编 + 记忆重建了核心功能。注入入口 `libmain.so` 加载器沿用现有二进制，本仓库只放 Mod 本体 `libPhiMeMod.so` 的源码。
 
-## 功能
+## 已完成的功能（v1.6.0 重建版）
 
-- **自动游玩**：所有音符走游戏自己的 Perfect 判定，打击音、特效、连击都是原生的；自动游玩时屏蔽手动判定。
-- **自动打歌评级**：可选 V / S / A / B / C，分数到达该评级所需分数后停止判定，结算就是所选评级。
-- **Igallta 一键解锁**：写入游戏自己的解锁存档标记，第六章隐藏曲 EZ / HD / IN 直接可打（AT 仍需 IN 拿 S）。
-- **全部头像解锁**：写入存档里的 Head portrait 钥匙（`3key<头像名>` = 1），账号页 84 个头像全部可选，重启不丢。
-- **课题模式修复**：修好游戏自带的课题模式打第二首时崩溃/不开始的问题。
-- **保存与云同步**：成绩照常保存到本地；登录并打开游戏的自动同步后，和正常游玩一样在结算时上传云存档。
-- 练习模式（选段/循环/变速）、选歌界面镜像/练习/自动开关、皮肤、判定详情、B30 页、上隐条等。
+- **一键解锁全部线索 / 曲绘 / 头像 / Igallta**
+  - 头像 / 曲绘 / 线索（收藏品）走游戏钥匙系统：存档值是 `SaveManagement` 的 int，键名 `<kind>key<名字>`（3 头像 / 2 曲绘 / 1 线索·收藏品 / 0 歌曲）；写 1 + `GameInformation.CheckKeys()` 即解锁，重启不丢。
+  - Igallta 走 `SaveManagement.SaveBool` 写隐藏曲解锁标记。
+- **自动游玩**：hook `ClickControl/DragControl/FlickControl/HoldControl.Judge()`，在游戏自己判定前把音符标成 Perfect（`ChartNote.isJudged = true` + `realTime = nowTime`）。
+- **自动打歌评级**：分数到达所选评级（V 960000 / S 920000 / A 880000 / B 820000 / C 700000）后停止判定，余下音符按 Miss 结算。
 
-## 版本
-
-当前版本 **v1.5.8**。完整变更记录见 [CHANGELOG.md](CHANGELOG.md)。
-
-## 使用
-
-两种方式：
-
-1. **直接安装签名好的完整 APK**（整个游戏 + 已注入的 Mod）。
-   - 由于完整 APK 体积约 2.4 GB（超过 GitHub 单个文件 100 MB 上限），且包含《Phigros》原游戏本体，本仓库不放完整 APK。
-   - 完整 APK 请向发布者索取（或从已安装的设备上 `adb pull` 拉取 `base.apk`）。
-
-2. **手动注入**（已有游戏本体，只想替换 Mod）：
-   - 用 APK 重打包工具，把本仓库 `android/arm64-v8a/libPhiMeMod.so` 替换进 APK 的 `lib/arm64-v8a/libPhiMeMod.so`；
-   - 把原 `lib/arm64-v8a/libmain.so` 改名为 `libmain_orig.so`，再放入本仓库的 `android/arm64-v8a/libmain.so`（32 位同理放 `android/armeabi-v7a/libmain.so`）；
-   - 重新签名安装即可。
-   - 或者：不重打包，直接把 `libPhiMeMod.so` 推到设备 `/sdcard/Android/data/com.PigeonGames.Phigros/files/PhiMeMod/libPhiMeMod.so`，`libmain.so` 加载器会优先读取它。
-
-> `libmain.so` 是注入用入口 shim：`JNI_OnLoad` 时 `dlopen` 加载 `libPhiMeMod.so`，再链回游戏原来的 `libmain.so`（重打包时被改名为 `libmain_orig.so`）。
-
-## 仓库文件
+## 目录
 
 | 路径 | 说明 |
 |---|---|
-| `android/arm64-v8a/libPhiMeMod.so` | Mod 本体（arm64） |
-| `android/arm64-v8a/libmain.so` | 注入入口 shim（arm64） |
-| `android/armeabi-v7a/libmain.so` | 注入入口 shim（32 位） |
-| `README.md` | 本文件 |
-| `CHANGELOG.md` | 版本变更 |
+| `src/il2cpp.cpp` | IL2CPP API 绑定（dlsym）+ 类/方法/字段查找 + `hookMethod` |
+| `src/mod.h` | 类型、配置、功能声明 |
+| `src/main.cpp` | 入口（constructor → 线程 → 延迟初始化） |
+| `src/keys.cpp` | 线索/曲绘/头像/Igallta 一键解锁 |
+| `src/autoplay.cpp` | 自动游玩 + 自动打歌评级 |
+| `src/prefs.cpp` | PlayerPrefs 读写（`prefGetInt`/`prefSetInt`） |
+| `src/log.cpp` | 日志（`__android_log_print`，tag `PhiMeMod`） |
+| `build_android.ps1` | 构建脚本（LLVM clang++，aarch64） |
+| `libs/` | 空桩 `.so`，只为让链接器记录 DT_NEEDED |
+
+## 构建
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build_android.ps1
+# 产物: out\android\libPhiMeMod.so
+```
+
+需要 `C:\Program Files\LLVM\bin`（LLVM 23.1.5）。
+
+## 使用（触发方式）
+
+目前用 PlayerPrefs 触发（面板 UI 待补）：
+
+| PlayerPrefs 键 | 值 | 作用 |
+|---|---|---|
+| `PhiMeMod.autoplay` | `1` | 开启自动游玩 |
+| `PhiMeMod.autoRank` | `0`~`5` | 评级上限（0 不限，1 V / 2 S / 3 A / 4 B / 5 C） |
+| `PhiMeMod.unlockIgallta` | `1` | 解锁 Igallta（第六章隐藏曲） |
+| `PhiMeMod.unlockClues` | `1` | 解锁全部线索（收藏品，kind 1） |
+| `PhiMeMod.unlockIllustrations` | `1` | 解锁全部曲绘（kind 2） |
+| `PhiMeMod.unlockAvatars` | `1` | 解锁全部头像（kind 3） |
+
+注入：把编译出的 `libPhiMeMod.so` 放到
+`/sdcard/Android/media/com.PigeonGames.Phigros/PhiMeMod/libPhiMeMod.so`（或
+`/sdcard/Android/data/com.PigeonGames.Phigros/files/PhiMeMod/`），重启游戏即可加载（加载器会优先读推送的 .so）。
 
 ## 声明
 
-- 本项目是《Phigros》的第三方 Mod，与 Pigeon Games 无关，仅供学习与交流。
-- 本仓库不含任何《Phigros》游戏资源（曲包、音频、图片、游戏本体等），只放 Mod 自己的二进制与文档。
-- 原版 PhiMe 仓库地址（[melodycheese/PhiMe](https://github.com/melodycheese/PhiMe)）现已无法访问（账号/仓库已不可见），此处仍按原项目说明保留引用。
-
-## 注意
-
-本仓库当前**只有编译后的二进制，源码暂缺**（原工程文件已丢失）。如需源码，请联系发布者。
+- 第三方 Mod，与 Pigeon Games 无关，仅供学习交流；本仓库不含任何游戏资源。
+- 原仓库 [melodycheese/PhiMe](https://github.com/melodycheese/PhiMe) 现已无法访问，此处仍按原项目说明保留引用。
