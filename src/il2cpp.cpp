@@ -180,8 +180,20 @@ Il2CppImage* gameImage() {
 }
 
 Il2CppClass* findClass(const char* ns, const char* name) {
-    Il2CppImage* img = gameImage();
-    return img ? pClassFromName(img, ns, name) : 0;
+    // Search every assembly (not just Assembly-CSharp): PlayerPrefs etc. live in the
+    // UnityEngine assemblies, GameInformation in Assembly-CSharp.
+    Il2CppDomain* d = domainGet();
+    if (!d) return 0;
+    size_t count = 0;
+    Il2CppAssembly** asms = pDomainAssemblies(d, &count);
+    if (!asms) return 0;
+    for (size_t i = 0; i < count; i++) {
+        Il2CppImage* img = pAssemblyImage(asms[i]);
+        if (!img) continue;
+        Il2CppClass* c = pClassFromName(img, ns, name);
+        if (c) return c;
+    }
+    return 0;
 }
 
 MethodInfo* findMethod(Il2CppClass* k, const char* name, int argc) {
